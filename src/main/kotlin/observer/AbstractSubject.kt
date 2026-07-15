@@ -1,4 +1,5 @@
-Abs
+import observer.Observer
+import observer.Subject
 /**
  * Reusable base implementation of [Subject] — this is the heart of the Observer pattern, and it is
  * yours to implement. Every sensor extends this class, so once it works, every sensor can be
