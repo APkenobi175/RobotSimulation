@@ -33,8 +33,30 @@ class TemperatureClimberProgram: RobotProgram {
         this.robot = null
     }
 
-    private fun decide(){
-        return
-    }
+    private fun decide() {
+        val api = robot ?: return
 
+        ticksSinceSample++
+        if (ticksSinceSample < sampleInterval) {
+            // not time to re-evaluate yet — just keep driving forward
+            api.perform(SetTrackVelocitiesCommand(api.actuator, forward, forward))
+            return
+        }
+
+        // it's been a full sample interval — compare to last time
+        ticksSinceSample = 0
+        val gotWarmer = currentTemp > lastTemperature
+        lastTemperature = currentTemp
+
+        val l: Double
+        val r: Double
+        if (gotWarmer) {
+            // heading toward the heat, keep going straight
+            l = forward; r = forward
+        } else {
+            // colder or no improvement, turn to try a new direction
+            l = turn; r = -turn
+        }
+        api.perform(SetTrackVelocitiesCommand(api.actuator, l, r))
+    }
 }
