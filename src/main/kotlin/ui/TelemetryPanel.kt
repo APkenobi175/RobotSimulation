@@ -3,7 +3,9 @@ package ui
 import javafx.geometry.Insets
 import javafx.scene.control.Label
 import javafx.scene.layout.VBox
+import javafx.scene.paint.Color
 import model.Robot
+import observer.Observer
 
 /**
  * A live readout of the sensor values — the *consumer* side of the Observer pattern.
@@ -19,6 +21,9 @@ class TelemetryPanel : VBox(6.0) {
     private val vision = valueLabel()
     private val line = valueLabel()
     private val collision = valueLabel()
+    private var lineLeftState = false
+    private var lineRightState = false
+    private var lineCenterState = false
 
     init {
         padding = Insets(12.0)
@@ -47,7 +52,54 @@ class TelemetryPanel : VBox(6.0) {
      * AbstractSubject.)
      */
     fun bindTo(robot: Robot) {
-        // TODO(student): subscribe observers to robot's sensors (see the doc comment above).
+        robot.sonar.subscribe(object : Observer<Double> {
+            override fun onUpdate(value: Double) {
+                sonar.text = "%.1f".format(value)
+            }
+        })
+
+        robot.temperature.subscribe(object : Observer<Double> {
+            override fun onUpdate(value: Double) {
+                temperature.text = "%.1f°".format(value)
+            }
+        })
+
+        robot.vision.subscribe(object : Observer<Color> {
+            override fun onUpdate(value: Color) {
+                vision.text = value.toString()
+            }
+        })
+
+        robot.collision.subscribe(object : Observer<Boolean> {
+            override fun onUpdate(value: Boolean) {
+                collision.text = if (value) "HIT" else "clear"
+            }
+        })
+
+        robot.lineLeft.subscribe(object : Observer<Boolean> {
+            override fun onUpdate(value: Boolean) {
+                lineLeftState = value
+                renderLine()
+            }
+        })
+        robot.lineCenter.subscribe(object : Observer<Boolean> {
+            override fun onUpdate(value: Boolean) {
+                lineCenterState = value
+                renderLine()
+            }
+        })
+        robot.lineRight.subscribe(object : Observer<Boolean> {
+            override fun onUpdate(value: Boolean) {
+                lineRightState = value
+                renderLine()
+            }
+        })
+    }
+
+    private fun renderLine() {
+        // Update text to show change of state
+        fun mark(on: Boolean) = if (on) "ON" else "OFF"
+        line.text = "${mark(lineLeftState)}  ${mark(lineCenterState)}  ${mark(lineRightState)}"
     }
 
     private fun captioned(caption: String, value: Label): VBox =
