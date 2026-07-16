@@ -1,5 +1,5 @@
-import observer.Observer
-import observer.Subject
+package observer
+
 /**
  * Reusable base implementation of [Subject] — this is the heart of the Observer pattern, and it is
  * yours to implement. Every sensor extends this class, so once it works, every sensor can be
@@ -14,17 +14,23 @@ import observer.Subject
  * the telemetry panel stays blank and programs receive no callbacks.
  */
 abstract class AbstractSubject<T> : Subject<T> {
+    private val observers = mutableListOf<Observer<T>>()
 
     override fun subscribe(observer: Observer<T>) {
-        // TODO(student): remember this observer
+        if (observer !in observers){
+            observers.add(observer)
+        }
     }
 
     override fun unsubscribe(observer: Observer<T>) {
-        // TODO(student): forget this observer
+        observers.remove(observer)
     }
 
     override fun notifyObservers(value: T) {
-        // TODO(student): deliver `value` to every subscribed observer via onUpdate(value)
+        // Call onUpdate for every observer
+        for (observer in observers.toList()) { // Use toList() so we don't modify the original list while iterating
+            observer.onUpdate(value)
+        }
     }
 }
 
