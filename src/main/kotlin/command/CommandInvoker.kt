@@ -16,6 +16,13 @@ class CommandInvoker {
 
     fun run(command: Command) {
         command.execute()
+
+        // Evalith fix: merge into the top of the undo stack instead of pushing a new entry.
+        val top = undoStack.lastOrNull()
+        if (command is SetTrackVelocitiesCommand && top is SetTrackVelocitiesCommand && command.mergeInto(top)) {
+            undoStack.removeLast()
+        }
+
         undoStack.addLast(command)
         redoStack.clear() // When doing a new action we don't have anything to redo so clear that stack
     }

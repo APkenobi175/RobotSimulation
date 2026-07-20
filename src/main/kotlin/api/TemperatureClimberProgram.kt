@@ -1,5 +1,6 @@
 package api
-import command.SetTrackVelocitiesCommand
+import command.MovementAction
+import command.MovementCommandFactory
 import observer.Observer
 class TemperatureClimberProgram: RobotProgram {
     override val name = "Find Hottest Temperature"
@@ -15,6 +16,10 @@ class TemperatureClimberProgram: RobotProgram {
 
     private var robot: RobotApi? = null
 
+    // Evalith fix: build movement commands through the factory instead of constructing
+    // SetTrackVelocitiesCommand directly.
+    private val commandFactory = MovementCommandFactory()
+
     private val temperatureObserver = object : Observer<Double>{
         override fun onUpdate(value: Double){
             currentTemp = value
@@ -29,7 +34,7 @@ class TemperatureClimberProgram: RobotProgram {
 
     override fun stopProgram(robot: RobotApi) {
         robot.sensors.temperature.unsubscribe(temperatureObserver)
-        robot.perform(SetTrackVelocitiesCommand(robot.actuator, 0.0, 0.0))
+        robot.perform(commandFactory.create(MovementAction.STOP, robot.actuator))
         this.robot = null
     }
 
@@ -39,23 +44,21 @@ class TemperatureClimberProgram: RobotProgram {
         val api = robot ?: return
 
         if (!readyToCompare()) {
-            api.perform(SetTrackVelocitiesCommand(api.actuator, forward, forward))
+            api.perform(commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward))
             return
         }
 
         val gotWarmer = currentTemp > lastTemperature
         lastTemperature = currentTemp
 
-        val l: Double
-        val r: Double
-        if (gotWarmer) {
+        val command = if (gotWarmer) {
             // heading toward the heat, keep going straight
-            l = forward; r = forward
+            commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
         } else {
             // colder or no improvement, turn to try a new direction
-            l = turn; r = -turn
+            commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
         }
-        api.perform(SetTrackVelocitiesCommand(api.actuator, l, r))
+        api.perform(command)
     }
 
     // gates decide() to one comparison per sampleInterval readings.

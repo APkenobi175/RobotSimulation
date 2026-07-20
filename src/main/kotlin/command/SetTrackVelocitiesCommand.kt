@@ -20,6 +20,13 @@ class SetTrackVelocitiesCommand (
         actuator.setTrackVelocities(previousLeft, previousRight)
     }
 
+    // Evalith fix: merge into the previous velocity command to avoid mass undo-stack entries.
+    fun mergeInto(previous: SetTrackVelocitiesCommand): Boolean {
+        if (previous.actuator !== actuator) return false
+        previousLeft = previous.previousLeft
+        previousRight = previous.previousRight
+        return true
+    }
 }
 
 

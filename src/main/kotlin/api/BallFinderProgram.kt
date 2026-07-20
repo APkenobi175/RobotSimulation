@@ -1,6 +1,8 @@
 package api
 
-import command.SetTrackVelocitiesCommand
+import command.Command
+import command.MovementAction
+import command.MovementCommandFactory
 import javafx.scene.paint.Color
 import observer.Observer
 
@@ -24,6 +26,10 @@ class BallFinderProgram: RobotProgram {
     private var visionColor: Color? = null
 
     private var robot: RobotApi? = null
+
+    // Evalith fix: build movement commands through the factory instead of constructing
+    // SetTrackVelocitiesCommand directly.
+    private val commandFactory = MovementCommandFactory()
 
     private val sonarObserver = object : Observer<Double> {
         override fun onUpdate(value: Double) {
@@ -57,7 +63,7 @@ class BallFinderProgram: RobotProgram {
         robot.sensors.sonar.unsubscribe(sonarObserver)
         robot.sensors.vision.unsubscribe(visionObserver)
         robot.sensors.collision.unsubscribe(collisionObserver)
-        robot.perform(SetTrackVelocitiesCommand(robot.actuator, 0.0, 0.0))
+        robot.perform(commandFactory.create(MovementAction.STOP, robot.actuator))
         this.robot = null
     }
 
@@ -66,43 +72,34 @@ class BallFinderProgram: RobotProgram {
         val red = isRed(visionColor)
         val close = sonarDistance < avoidThreshold
 
-        var l: Double
-        var r: Double
-
         if (red || close){
             searchTicks = 0
             relocating = false
         }
 
+        val command: Command
         if (colliding){
-            l = turn
-            r = -turn
-        }
-        else if (red && close){
+            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
+        } else if (red && close){
             // you made it stop
-            l = 0.0
-            r = 0.0
+            command = commandFactory.create(MovementAction.STOP, api.actuator)
         } else if (red){
             // You see it, go forwards
-            l = forward
-            r = forward
+            command = commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
         } else if (close) {
             // Turn bruh don't hit an obstacle
-            l = turn
-            r = -turn
+            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
         } else if(relocating){
-            l = forward
-            r = forward
+            command = commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
         } else{
-            l = turn * 0.5
-            r = -turn * 0.5
             searchTicks++
             if (searchTicks >= ticksForFullRotation){
                 relocating = true
                 searchTicks = 0
             }
+            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn * 0.5)
         }
-        api.perform(SetTrackVelocitiesCommand(api.actuator, l, r))
+        api.perform(command)
     }
 
     private fun isRed(color: Color?): Boolean{
