@@ -1,6 +1,5 @@
 package api
-import command.MovementAction
-import command.MovementCommandFactory
+import command.RobotCommandFactory
 import observer.Observer
 class TemperatureClimberProgram: RobotProgram {
     override val name = "Find Hottest Temperature"
@@ -16,10 +15,6 @@ class TemperatureClimberProgram: RobotProgram {
 
     private var robot: RobotApi? = null
 
-    // Evalith fix: build movement commands through the factory instead of constructing
-    // SetTrackVelocitiesCommand directly.
-    private val commandFactory = MovementCommandFactory()
-
     private val temperatureObserver = object : Observer<Double>{
         override fun onUpdate(value: Double){
             currentTemp = value
@@ -34,7 +29,7 @@ class TemperatureClimberProgram: RobotProgram {
 
     override fun stopProgram(robot: RobotApi) {
         robot.sensors.temperature.unsubscribe(temperatureObserver)
-        robot.perform(commandFactory.create(MovementAction.STOP, robot.actuator))
+        robot.perform(RobotCommandFactory.stop(robot.actuator))
         this.robot = null
     }
 
@@ -44,7 +39,7 @@ class TemperatureClimberProgram: RobotProgram {
         val api = robot ?: return
 
         if (!readyToCompare()) {
-            api.perform(commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward))
+            api.perform(RobotCommandFactory.forward(api.actuator, forward))
             return
         }
 
@@ -53,10 +48,10 @@ class TemperatureClimberProgram: RobotProgram {
 
         val command = if (gotWarmer) {
             // heading toward the heat, keep going straight
-            commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
+            RobotCommandFactory.forward(api.actuator, forward)
         } else {
             // colder or no improvement, turn to try a new direction
-            commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
+            RobotCommandFactory.tracks(api.actuator, turn, -turn)
         }
         api.perform(command)
     }

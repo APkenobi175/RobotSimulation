@@ -1,8 +1,7 @@
 package api
 
 import command.Command
-import command.MovementAction
-import command.MovementCommandFactory
+import command.RobotCommandFactory
 import javafx.scene.paint.Color
 import observer.Observer
 
@@ -26,10 +25,6 @@ class BallFinderProgram: RobotProgram {
     private var visionColor: Color? = null
 
     private var robot: RobotApi? = null
-
-    // Evalith fix: build movement commands through the factory instead of constructing
-    // SetTrackVelocitiesCommand directly.
-    private val commandFactory = MovementCommandFactory()
 
     private val sonarObserver = object : Observer<Double> {
         override fun onUpdate(value: Double) {
@@ -63,7 +58,7 @@ class BallFinderProgram: RobotProgram {
         robot.sensors.sonar.unsubscribe(sonarObserver)
         robot.sensors.vision.unsubscribe(visionObserver)
         robot.sensors.collision.unsubscribe(collisionObserver)
-        robot.perform(commandFactory.create(MovementAction.STOP, robot.actuator))
+        robot.perform(RobotCommandFactory.stop(robot.actuator))
         this.robot = null
     }
 
@@ -79,25 +74,25 @@ class BallFinderProgram: RobotProgram {
 
         val command: Command
         if (colliding){
-            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
+            command = RobotCommandFactory.tracks(api.actuator, turn, -turn)
         } else if (red && close){
             // you made it stop
-            command = commandFactory.create(MovementAction.STOP, api.actuator)
+            command = RobotCommandFactory.stop(api.actuator)
         } else if (red){
             // You see it, go forwards
-            command = commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
+            command = RobotCommandFactory.forward(api.actuator, forward)
         } else if (close) {
             // Turn bruh don't hit an obstacle
-            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn)
+            command = RobotCommandFactory.tracks(api.actuator, turn, -turn)
         } else if(relocating){
-            command = commandFactory.create(MovementAction.FORWARD, api.actuator, speed = forward)
+            command = RobotCommandFactory.forward(api.actuator, forward)
         } else{
             searchTicks++
             if (searchTicks >= ticksForFullRotation){
                 relocating = true
                 searchTicks = 0
             }
-            command = commandFactory.create(MovementAction.TURN_RIGHT, api.actuator, speed = turn * 0.5)
+            command = RobotCommandFactory.tracks(api.actuator, turn * 0.5, -turn * 0.5)
         }
         api.perform(command)
     }

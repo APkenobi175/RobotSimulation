@@ -1,7 +1,6 @@
 package api
 
-import command.MovementAction
-import command.MovementCommandFactory
+import command.RobotCommandFactory
 import observer.Observer
 
 class LineFollowerProgram : RobotProgram{
@@ -20,10 +19,6 @@ class LineFollowerProgram : RobotProgram{
     private var lastTurnDirection = true // (True = right, false = left)
 
     private var robot: RobotApi? = null
-
-    // Evalith fix: build movement commands through the factory instead of constructing
-    // SetTrackVelocitiesCommand directly.
-    private val commandFactory = MovementCommandFactory()
 
     private val leftObserver = object : Observer<Boolean>{
         override fun onUpdate(value: Boolean) {left = value; decide()}
@@ -52,7 +47,7 @@ class LineFollowerProgram : RobotProgram{
         robot.sensors.lineRight.unsubscribe(rightObserver)
         robot.sensors.lineCenter.unsubscribe(centerObserver)
         // Set my velocity back to 0
-        robot.perform(commandFactory.create(MovementAction.STOP, robot.actuator))
+        robot.perform(RobotCommandFactory.stop(robot.actuator))
         this.robot = null
     }
 
@@ -88,9 +83,7 @@ class LineFollowerProgram : RobotProgram{
                 r = -turn
             }
         }
-        // Evalith fix: these turns mix two different constants (forward/turn), so they don't
-        // reduce to a single-speed pivot — go through the factory's general TRACKS case instead.
-        api.perform(commandFactory.create(MovementAction.TRACKS, api.actuator, left = l, right = r))
+        api.perform(RobotCommandFactory.tracks(api.actuator, l, r))
     }
 
 }
