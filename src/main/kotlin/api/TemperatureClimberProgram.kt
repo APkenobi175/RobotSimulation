@@ -33,18 +33,16 @@ class TemperatureClimberProgram: RobotProgram {
         this.robot = null
     }
 
+    // New reading arrived (via the observer callback) — if it's time to compare, do so and act;
+    // otherwise just keep going on the last decided heading until enough readings have come in.
     private fun decide() {
         val api = robot ?: return
 
-        ticksSinceSample++
-        if (ticksSinceSample < sampleInterval) {
-            // not time to re-evaluate yet — just keep driving forward
+        if (!readyToCompare()) {
             api.perform(SetTrackVelocitiesCommand(api.actuator, forward, forward))
             return
         }
 
-        // it's been a full sample interval — compare to last time
-        ticksSinceSample = 0
         val gotWarmer = currentTemp > lastTemperature
         lastTemperature = currentTemp
 
@@ -58,5 +56,13 @@ class TemperatureClimberProgram: RobotProgram {
             l = turn; r = -turn
         }
         api.perform(SetTrackVelocitiesCommand(api.actuator, l, r))
+    }
+
+    // gates decide() to one comparison per sampleInterval readings.
+    private fun readyToCompare(): Boolean {
+        ticksSinceSample++
+        if (ticksSinceSample < sampleInterval) return false
+        ticksSinceSample = 0
+        return true
     }
 }

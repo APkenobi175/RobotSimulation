@@ -17,12 +17,8 @@ class BallFinderProgram: RobotProgram {
     private var searchTicks = 0
     private val ticksForFullRotation = 120
 
-    // track searchging state
+    // once a full rotation finds nothing, drive forward to relocate
     private var relocating = false
-    private var relocateTicks = 0
-    // private var relocateDuration = 600 // duration to drive in random direction in search for ball
-    private var relocateLeft = 0.0
-    private var relocateRight = 0.0
 
     private var sonarDistance = Double.MAX_VALUE
     private var visionColor: Color? = null
@@ -70,18 +66,13 @@ class BallFinderProgram: RobotProgram {
         val red = isRed(visionColor)
         val close = sonarDistance < avoidThreshold
 
-        if (red){
-            relocating = false
-
-        }
-
         var l: Double
         var r: Double
 
         if (red || close){
             searchTicks = 0
             relocating = false
-            relocateTicks = 0}
+        }
 
         if (colliding){
             l = turn
@@ -111,42 +102,12 @@ class BallFinderProgram: RobotProgram {
                 searchTicks = 0
             }
         }
-//        }else{
-//            if (relocating){
-//                l = relocateLeft
-//                r = relocateRight
-//                relocateTicks++
-//                if (relocateTicks >= relocateDuration){
-//                    relocating = false
-//                    searchTicks = 0
-//                }
-//            } else{
-//                l = turn
-//                r = -turn
-//                searchTicks++
-//                if (searchTicks >= ticksForFullRotation){
-//                    startRelocation()
-//                    l = relocateLeft
-//                    r = relocateRight
-//                }
-//            }
-//        }
         api.perform(SetTrackVelocitiesCommand(api.actuator, l, r))
     }
-
-
 
     private fun isRed(color: Color?): Boolean{
         if (color == null) return false
         // Don't do a direct comparison because thats fragile, just look for strong red
         return color.red > 0.6 && color.green < 0.4 && color.blue < 0.4
-    }
-
-    private fun startRelocation(){
-        // This is so we don't get stuck in a circle
-        relocating = true
-        relocateTicks = 0
-        relocateLeft = 150.0
-        relocateRight = 150.0
     }
 }

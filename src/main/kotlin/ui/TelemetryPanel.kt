@@ -25,6 +25,18 @@ class TelemetryPanel : VBox(6.0) {
     private var lineRightState = false
     private var lineCenterState = false
 
+    // Observers are kept as fields (rather than created inline) so bindTo can unsubscribe them
+    // from the previously-bound robot before subscribing them to a new one.
+    private val sonarObserver = Observer<Double> { value -> sonar.text = "%.1f".format(value) }
+    private val temperatureObserver = Observer<Double> { value -> temperature.text = "%.1f°".format(value) }
+    private val visionObserver = Observer<Color> { value -> vision.text = value.toString() }
+    private val collisionObserver = Observer<Boolean> { value -> collision.text = if (value) "HIT" else "clear" }
+    private val lineLeftObserver = Observer<Boolean> { value -> lineLeftState = value; renderLine() }
+    private val lineCenterObserver = Observer<Boolean> { value -> lineCenterState = value; renderLine() }
+    private val lineRightObserver = Observer<Boolean> { value -> lineRightState = value; renderLine() }
+
+    private var boundRobot: Robot? = null
+
     init {
         padding = Insets(12.0)
         prefWidth = 210.0
@@ -52,48 +64,24 @@ class TelemetryPanel : VBox(6.0) {
      * AbstractSubject.)
      */
     fun bindTo(robot: Robot) {
-        robot.sonar.subscribe(object : Observer<Double> {
-            override fun onUpdate(value: Double) {
-                sonar.text = "%.1f".format(value)
-            }
-        })
+        boundRobot?.let { old ->
+            old.sonar.unsubscribe(sonarObserver)
+            old.temperature.unsubscribe(temperatureObserver)
+            old.vision.unsubscribe(visionObserver)
+            old.collision.unsubscribe(collisionObserver)
+            old.lineLeft.unsubscribe(lineLeftObserver)
+            old.lineCenter.unsubscribe(lineCenterObserver)
+            old.lineRight.unsubscribe(lineRightObserver)
+        }
+        boundRobot = robot
 
-        robot.temperature.subscribe(object : Observer<Double> {
-            override fun onUpdate(value: Double) {
-                temperature.text = "%.1f°".format(value)
-            }
-        })
-
-        robot.vision.subscribe(object : Observer<Color> {
-            override fun onUpdate(value: Color) {
-                vision.text = value.toString()
-            }
-        })
-
-        robot.collision.subscribe(object : Observer<Boolean> {
-            override fun onUpdate(value: Boolean) {
-                collision.text = if (value) "HIT" else "clear"
-            }
-        })
-
-        robot.lineLeft.subscribe(object : Observer<Boolean> {
-            override fun onUpdate(value: Boolean) {
-                lineLeftState = value
-                renderLine()
-            }
-        })
-        robot.lineCenter.subscribe(object : Observer<Boolean> {
-            override fun onUpdate(value: Boolean) {
-                lineCenterState = value
-                renderLine()
-            }
-        })
-        robot.lineRight.subscribe(object : Observer<Boolean> {
-            override fun onUpdate(value: Boolean) {
-                lineRightState = value
-                renderLine()
-            }
-        })
+        robot.sonar.subscribe(sonarObserver)
+        robot.temperature.subscribe(temperatureObserver)
+        robot.vision.subscribe(visionObserver)
+        robot.collision.subscribe(collisionObserver)
+        robot.lineLeft.subscribe(lineLeftObserver)
+        robot.lineCenter.subscribe(lineCenterObserver)
+        robot.lineRight.subscribe(lineRightObserver)
     }
 
     private fun renderLine() {
