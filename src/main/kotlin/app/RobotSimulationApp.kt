@@ -4,7 +4,7 @@ import api.DefaultProgramRegistry
 import api.DefaultRobotApi
 import api.StudentPrograms
 import command.CommandInvoker
-import command.SetTrackVelocitiesCommand
+import command.RobotCommandFactory
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.scene.Scene
@@ -97,7 +97,7 @@ class RobotSimulationApp : Application() {
     }
 
     private fun drive(left: Double, right: Double) {
-        api.perform(SetTrackVelocitiesCommand(api.actuator, left, right))
+        api.perform(RobotCommandFactory.tracks(api.actuator, left, right))
     }
 
     private fun switchEnvironment(envClass: Class<*>) {

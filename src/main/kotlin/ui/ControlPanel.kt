@@ -1,7 +1,7 @@
 package ui
 
 import api.RobotApi
-import command.SetTrackVelocitiesCommand
+import command.RobotCommandFactory
 import environment.Environment
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -64,7 +64,7 @@ class ControlPanel(
     }
 
     private fun drive(left: Double, right: Double) {
-        api.perform(SetTrackVelocitiesCommand(api.actuator, left, right))
+        api.perform(RobotCommandFactory.tracks(api.actuator, left, right))
     }
 
     private fun button(text: String, action: () -> Unit) =
